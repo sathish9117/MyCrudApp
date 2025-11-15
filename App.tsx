@@ -10,28 +10,18 @@ import {
   SafeAreaView,
   Platform,
   StatusBar,
+  Alert,
 } from "react-native";
 
-// Import our Firestore database instance
-import { db } from "./firebaseConfig";
-
-// Import Firestore functions
+// Import our new service functions and types
 import {
-  collection,
-  addDoc,
-  doc,
-  updateDoc,
-  deleteDoc,
-  onSnapshot, // For real-time data
-  QuerySnapshot,
-} from "firebase/firestore";
-
-// Define the TypeScript interface for our User object
-interface User {
-  id: string; // Firestore document ID
-  name: string;
-  age: number;
-}
+  subscribeToUsers,
+  addUser,
+  updateUser,
+  deleteUser,
+  User, // Our main User interface
+  UserData, // Our data-only interface
+} from "./firebaseServices/userService"; // Adjust path as needed
 
 export default function App() {
   const [users, setUsers] = useState<User[]>([]);
@@ -41,84 +31,62 @@ export default function App() {
 
   // --- READ (Real-time) ---
   useEffect(() => {
-    // Reference to the 'users' collection
-    const usersCollection = collection(db, "users");
+    // Call subscribeToUsers and pass our state updater
+    const unsubscribe = subscribeToUsers((usersData) => {
+      setUsers(usersData);
+    });
 
-    // onSnapshot listens for real-time updates
-    const unsubscribe = onSnapshot(
-      usersCollection,
-      (snapshot: QuerySnapshot) => {
-        const usersData: User[] = snapshot.docs.map((doc) => ({
-          id: doc.id,
-          ...doc.data(),
-        })) as User[];
-        setUsers(usersData);
-      }
-    );
-
-    // Cleanup: Unsubscribe from the listener when the component unmounts
+    // Return the unsubscribe function to be called when the component unmounts
     return () => unsubscribe();
   }, []);
 
-  // --- CREATE ---
-  const createUser = async () => {
-    if (!name || !age) {
-      alert("Please enter both name and age.");
-      return;
-    }
-    try {
-      await addDoc(collection(db, "users"), {
-        name: name,
-        age: parseInt(age),
-      });
-      // Clear inputs
-      clearInputs();
-    } catch (error) {
-      console.error("Error adding document: ", error);
-    }
+  // --- Helper Functions ---
+  const clearInputs = () => {
+    setName("");
+    setAge("");
+    setSelectedId(null);
   };
 
-  // --- UPDATE ---
-  const updateUser = async () => {
-    if (!selectedId) return;
+  // --- Handlers (Create, Update, Delete) ---
+
+  const handleAddOrUpdateUser = async () => {
+    if (!name || !age) {
+      Alert.alert("Error", "Please enter both name and age.");
+      return;
+    }
+
+    // Prepare the data. The service expects a number for age.
+    const userData: UserData = {
+      name: name,
+      age: parseInt(age),
+    };
 
     try {
-      // Reference to the specific document
-      const userDoc = doc(db, "users", selectedId);
-
-      // Update the document
-      await updateDoc(userDoc, {
-        name: name,
-        age: parseInt(age),
-      });
-      // Clear inputs and selection
+      if (selectedId) {
+        // --- UPDATE ---
+        await updateUser(selectedId, userData);
+        Alert.alert("Success", "User updated!");
+      } else {
+        // --- CREATE ---
+        await addUser(userData);
+        Alert.alert("Success", "User added!");
+      }
       clearInputs();
     } catch (error) {
-      console.error("Error updating document: ", error);
+      console.error("Error saving document: ", error);
+      Alert.alert("Error", "Could not save user.");
     }
   };
 
   // --- DELETE ---
-  const deleteUser = async (id: string) => {
+  const handleDeleteUser = async (id: string) => {
     try {
-      // Reference to the specific document
-      const userDoc = doc(db, "users", id);
-
-      // Delete the document
-      await deleteDoc(userDoc);
+      await deleteUser(id);
+      Alert.alert("Success", "User deleted!");
+      // No need to manually remove from state, onSnapshot will do it
     } catch (error) {
       console.error("Error deleting document: ", error);
-    }
-  };
-
-  // --- Helper Functions ---
-
-  // Handle submit (decide whether to create or update)
-  const handleSubmit = () => {
-    if (selectedId) {
-      updateUser();
-    } else {
-      createUser();
+      Alert.alert("Error", "Could not delete user.");
     }
   };
 
@@ -127,13 +95,6 @@ export default function App() {
     setSelectedId(user.id);
     setName(user.name);
     setAge(user.age.toString());
-  };
-
-  // Clear form
-  const clearInputs = () => {
-    setName("");
-    setAge("");
-    setSelectedId(null);
   };
 
   // --- Render Item for FlatList ---
@@ -152,7 +113,7 @@ export default function App() {
         </TouchableOpacity>
         <TouchableOpacity
           style={[styles.button, styles.deleteButton]}
-          onPress={() => deleteUser(item.id)}
+          onPress={() => handleDeleteUser(item.id)}
         >
           <Text style={styles.buttonText}>Delete</Text>
         </TouchableOpacity>
@@ -180,7 +141,7 @@ export default function App() {
         />
         <Button
           title={selectedId ? "Update User" : "Add User"}
-          onPress={handleSubmit}
+          onPress={handleAddOrUpdateUser} // Use the new handler
         />
         {selectedId && (
           <View style={styles.clearButton}>
@@ -203,7 +164,7 @@ export default function App() {
   );
 }
 
-// --- Styles ---
+// --- Styles (No Changes) ---
 const styles = StyleSheet.create({
   container: {
     flex: 1,
