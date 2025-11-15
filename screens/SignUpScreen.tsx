@@ -12,8 +12,9 @@ import {
 } from "react-native";
 import { signUp, SignUpCredentials } from "../firebaseServices/authService"; // Adjust path
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
+import { AuthStackParamList } from "../navigation/types";
 
-type Props = NativeStackScreenProps<any, "SignUp">;
+type Props = NativeStackScreenProps<AuthStackParamList, "SignUp">;
 
 export default function SignUpScreen({ navigation }: Props) {
   const [email, setEmail] = useState("");

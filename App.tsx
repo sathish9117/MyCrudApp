@@ -14,16 +14,19 @@ import {
   AuthUser,
 } from "./firebaseServices/authService"; // Adjust path
 
+// 1. Import your new param list types
+import { AuthStackParamList, AppStackParamList } from "./navigation/types"; // Adjust path
+
 // Import your screens
 import LoginScreen from "./screens/LoginScreen";
 import SignUpScreen from "./screens/SignUpScreen";
 import NotesScreen from "./screens/NotesScreen";
-import ProfileScreen from "./screens/ProfileScreen"; // 1. Import ProfileScreen
-// Define our navigation stacks
-// This is for unauthenticated users
-const AuthStack = createNativeStackNavigator();
-// This is for authenticated users
-const AppStack = createNativeStackNavigator();
+import ProfileScreen from "./screens/ProfileScreen";
+import UpdateNoteScreen from "./screens/UpdateNoteScreen";
+
+// 2. Pass the types to the navigators
+const AuthStack = createNativeStackNavigator<AuthStackParamList>();
+const AppStack = createNativeStackNavigator<AppStackParamList>();
 
 export default function App() {
   const [user, setUser] = useState<AuthUser | null>(null);
@@ -66,6 +69,12 @@ export default function App() {
             component={ProfileScreen}
             options={{ title: "My Profile" }} // Or customize header
           />
+          {/* 2. Add the UpdateNote screen to the stack */}
+          <AppStack.Screen
+            name="UpdateNote"
+            component={UpdateNoteScreen}
+            options={{ title: "Update Note" }} // Set a header title
+          />
         </AppStack.Navigator>
       ) : (
         // User is LOGGED OUT: Show the auth flow
@@ -84,8 +93,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  // --- Add ALL OTHER STYLES from your old App.tsx here ---
-  // --- and add these new ones for Login/SignUp ---
+
   container: {
     flex: 1,
     paddingTop: Platform.OS === "android" ? StatusBar.currentHeight : 0,

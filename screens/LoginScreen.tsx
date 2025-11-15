@@ -14,8 +14,9 @@ import { signIn } from "../firebaseServices/authService"; // Adjust path
 
 // Use NavigationProp to type the navigation prop
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
-// We'll define the AuthStackParamList in App.tsx
-type Props = NativeStackScreenProps<any, "Login">;
+import { AuthStackParamList } from "../navigation/types"; // 1. Import
+
+type Props = NativeStackScreenProps<AuthStackParamList, "Login">; // 2. Use in Props
 
 export default function LoginScreen({ navigation }: Props) {
   const [email, setEmail] = useState("");
