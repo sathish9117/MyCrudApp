@@ -10,7 +10,7 @@ import {
   Platform,
   StatusBar,
 } from "react-native";
-import { signUp } from "../firebaseServices/authService"; // Adjust path
+import { signUp, SignUpCredentials } from "../firebaseServices/authService"; // Adjust path
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 
 type Props = NativeStackScreenProps<any, "SignUp">;
@@ -18,14 +18,15 @@ type Props = NativeStackScreenProps<any, "SignUp">;
 export default function SignUpScreen({ navigation }: Props) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [name, setName] = useState(""); // <-- 2. Add state for name
 
   const handleSignUp = async () => {
-    if (!email || !password) {
+    if (!email || !password || !name) {
       Alert.alert("Error", "Please enter email and password.");
       return;
     }
     try {
-      await signUp({ email, password });
+      await signUp({ email, password, name });
       // onAuthStateChanged in App.tsx will handle navigation
     } catch (error: any) {
       Alert.alert("Sign Up Error", error.message);
@@ -35,6 +36,14 @@ export default function SignUpScreen({ navigation }: Props) {
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Create Account</Text>
+      {/* 5. Add the new TextInput for Name */}
+      <TextInput
+        style={styles.input}
+        placeholder="Full Name"
+        value={name}
+        onChangeText={setName}
+        autoCapitalize="words"
+      />
       <TextInput
         style={styles.input}
         placeholder="Email"

@@ -1,4 +1,5 @@
-import { auth } from "../firebaseConfig"; // Adjust path as needed
+import { doc, setDoc } from "firebase/firestore";
+import { auth, db } from "../firebaseConfig"; // Adjust path as needed
 import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
@@ -15,10 +16,38 @@ export interface AuthCredentials {
   password: string;
 }
 
+export interface SignUpCredentials extends AuthCredentials {
+  name: string;
+}
+
 // --- Functions ---
 
-export const signUp = ({ email, password }: AuthCredentials) => {
-  return createUserWithEmailAndPassword(auth, email, password);
+export const signUp = async ({ email, password, name }: SignUpCredentials) => {
+  try {
+    // a. Create the user in Firebase Authentication
+    const userCredential = await createUserWithEmailAndPassword(
+      auth,
+      email,
+      password
+    );
+    const user = userCredential.user;
+
+    // b. Create the user document in Firestore
+    // We use setDoc to specify the exact ID (the user's UID)
+    const userDocRef = doc(db, "users", user.uid);
+    await setDoc(userDocRef, {
+      uid: user.uid,
+      email: user.email,
+      name: name,
+      createdAt: new Date(), // Good practice to add a timestamp
+    });
+
+    return userCredential;
+  } catch (error) {
+    // Handle errors (e.g., email already in use)
+    console.error("Error during sign up: ", error);
+    throw error;
+  }
 };
 
 export const signIn = ({ email, password }: AuthCredentials) => {
