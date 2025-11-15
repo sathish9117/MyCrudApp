@@ -229,7 +229,7 @@ export default function NotesScreen({ navigation }: Props) {
         {selectedId && (
           <View style={styles.clearButton}>
             <Button
-              title="Clear Selection"
+              title="Cancel"
               onPress={clearInputs}
               color="#888"
               disabled={isUploading}
