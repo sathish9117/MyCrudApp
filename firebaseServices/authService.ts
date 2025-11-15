@@ -1,4 +1,4 @@
-import { doc, setDoc } from "firebase/firestore";
+import { doc, setDoc, getDoc, updateDoc } from "firebase/firestore";
 import { auth, db } from "../firebaseConfig"; // Adjust path as needed
 import {
   createUserWithEmailAndPassword,
@@ -18,11 +18,26 @@ export interface AuthCredentials {
 
 export interface SignUpCredentials extends AuthCredentials {
   name: string;
+  phoneNumber: string; // 1. Add phone number
+}
+
+// 2. Add a new interface for our full user profile
+export interface UserProfile {
+  uid: string;
+  email: string;
+  name: string;
+  phoneNumber?: string;
+  profileImageUrl?: string;
 }
 
 // --- Functions ---
 
-export const signUp = async ({ email, password, name }: SignUpCredentials) => {
+export const signUp = async ({
+  email,
+  password,
+  name,
+  phoneNumber,
+}: SignUpCredentials) => {
   try {
     // a. Create the user in Firebase Authentication
     const userCredential = await createUserWithEmailAndPassword(
@@ -39,7 +54,9 @@ export const signUp = async ({ email, password, name }: SignUpCredentials) => {
       uid: user.uid,
       email: user.email,
       name: name,
+      phoneNumber: phoneNumber, // 4. Save phone number
       createdAt: new Date(), // Good practice to add a timestamp
+      profileImageUrl: "", // Start with an empty image URL
     });
 
     return userCredential;
@@ -67,4 +84,37 @@ export const subscribeToAuthChanges = (
   callback: (user: AuthUser | null) => void
 ) => {
   return onAuthStateChanged(auth, callback);
+};
+
+// 5. NEW FUNCTION: Get the current user's profile from Firestore
+export const getUserProfile = async (): Promise<UserProfile | null> => {
+  const user = auth.currentUser;
+  if (!user) {
+    console.log("No user signed in");
+    return null;
+  }
+
+  try {
+    const userDocRef = doc(db, "users", user.uid);
+    const docSnap = await getDoc(userDocRef);
+
+    if (docSnap.exists()) {
+      return docSnap.data() as UserProfile;
+    } else {
+      console.log("No such user document!");
+      return null;
+    }
+  } catch (error) {
+    console.error("Error fetching user profile: ", error);
+    throw error;
+  }
+};
+
+// 6. NEW FUNCTION: Update parts of the user's profile
+export const updateUserProfile = (dataToUpdate: Partial<UserProfile>) => {
+  const user = auth.currentUser;
+  if (!user) throw new Error("No user authenticated to update profile.");
+
+  const userDocRef = doc(db, "users", user.uid);
+  return updateDoc(userDocRef, dataToUpdate);
 };

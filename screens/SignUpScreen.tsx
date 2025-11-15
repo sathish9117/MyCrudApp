@@ -19,14 +19,14 @@ export default function SignUpScreen({ navigation }: Props) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState(""); // <-- 2. Add state for name
-
+  const [phoneNumber, setPhoneNumber] = useState(""); // 1. Add state
   const handleSignUp = async () => {
-    if (!email || !password || !name) {
+    if (!email || !password || !name || !phoneNumber) {
       Alert.alert("Error", "Please enter email and password.");
       return;
     }
     try {
-      await signUp({ email, password, name });
+      await signUp({ email, password, name, phoneNumber }); // 3. Pass name and phone number
       // onAuthStateChanged in App.tsx will handle navigation
     } catch (error: any) {
       Alert.alert("Sign Up Error", error.message);
@@ -44,6 +44,15 @@ export default function SignUpScreen({ navigation }: Props) {
         onChangeText={setName}
         autoCapitalize="words"
       />
+      {/* 4. Add Phone Number Input */}
+      <TextInput
+        style={styles.input}
+        placeholder="Phone Number"
+        value={phoneNumber}
+        onChangeText={setPhoneNumber}
+        keyboardType="phone-pad"
+      />
+
       <TextInput
         style={styles.input}
         placeholder="Email"

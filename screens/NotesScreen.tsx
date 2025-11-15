@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { NativeStackScreenProps } from "@react-navigation/native-stack"; // 1. Import prop type
 import {
   StyleSheet,
   Text,
@@ -7,11 +8,11 @@ import {
   Button,
   FlatList,
   TouchableOpacity,
-  SafeAreaView,
   Platform,
   StatusBar,
   Alert,
 } from "react-native";
+
 import {
   subscribeToNotes,
   addNote,
@@ -21,8 +22,12 @@ import {
   NoteData,
 } from "../firebaseServices/notesService"; // Adjust path
 import { logOut } from "../firebaseServices/authService"; // Import logOut
+import { SafeAreaView } from "react-native-safe-area-context";
 
-export default function NotesScreen() {
+// 2. Define the prop type
+type Props = NativeStackScreenProps<any, "MyNotes">;
+
+export default function NotesScreen({ navigation }: Props) {
   const [notes, setNotes] = useState<Note[]>([]);
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
@@ -102,7 +107,15 @@ export default function NotesScreen() {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <Text style={styles.title}>My Notes</Text>
-        <Button title="Sign Out" onPress={logOut} color="#dc3545" />
+        {/* 4. Add a Profile button */}
+        <View style={styles.headerButtons}>
+          <Button
+            title="Profile"
+            onPress={() => navigation.navigate("Profile")}
+          />
+          <View style={{ width: 10 }} />
+          <Button title="Sign Out" onPress={logOut} color="#dc3545" />
+        </View>
       </View>
 
       <View style={styles.inputContainer}>
@@ -155,6 +168,10 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 10, // Replaced marginVertical from App.tsx
+  },
+  headerButtons: {
+    // 5. Add style for the button group
+    flexDirection: "row",
   },
   title: {
     fontSize: 24,

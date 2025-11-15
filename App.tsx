@@ -18,7 +18,7 @@ import {
 import LoginScreen from "./screens/LoginScreen";
 import SignUpScreen from "./screens/SignUpScreen";
 import NotesScreen from "./screens/NotesScreen";
-
+import ProfileScreen from "./screens/ProfileScreen"; // 1. Import ProfileScreen
 // Define our navigation stacks
 // This is for unauthenticated users
 const AuthStack = createNativeStackNavigator();
@@ -60,6 +60,12 @@ export default function App() {
             options={{ headerShown: false }} // Hide header, NotesScreen has its own
           />
           {/* Add other app screens here */}
+          {/* 3. Add the Profile screen to the stack */}
+          <AppStack.Screen
+            name="Profile"
+            component={ProfileScreen}
+            options={{ title: "My Profile" }} // Or customize header
+          />
         </AppStack.Navigator>
       ) : (
         // User is LOGGED OUT: Show the auth flow

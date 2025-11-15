@@ -3,10 +3,11 @@ import { initializeApp, FirebaseApp } from "firebase/app";
 
 // 1. Import both functions from the main 'firebase/auth' module
 import { initializeAuth, getReactNativePersistence } from "firebase/auth";
-
+import { initializeFirestore } from "firebase/firestore";
+import { getStorage } from "firebase/storage"; // 1. Import getStorage
 // 2. Import AsyncStorage
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { Firestore, getFirestore } from "firebase/firestore";
+// import { Firestore, getFirestore } from "firebase/firestore";
 
 // TODO: Add your own Firebase config object here
 const firebaseConfig = {
@@ -22,7 +23,9 @@ const firebaseConfig = {
 const app: FirebaseApp = initializeApp(firebaseConfig);
 
 // Initialize and export Firestore
-export const db: Firestore = getFirestore(app);
+export const db = initializeFirestore(app, {
+  experimentalForceLongPolling: true,
+});
 
 // 3. This is the fix:
 // We replace 'getAuth(app)' with 'initializeAuth'
@@ -30,3 +33,6 @@ export const db: Firestore = getFirestore(app);
 export const auth = initializeAuth(app, {
   persistence: getReactNativePersistence(AsyncStorage),
 });
+
+// 2. Add and export Storage
+export const storage = getStorage(app);
