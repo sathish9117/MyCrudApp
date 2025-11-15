@@ -7,6 +7,7 @@ import {
   deleteDoc,
   onSnapshot,
   QuerySnapshot,
+  DocumentReference, // Import this
 } from "firebase/firestore";
 
 // --- Types ---
@@ -14,11 +15,13 @@ export interface Note {
   id: string;
   title: string;
   content: string;
+  imageUrl?: string; // <-- 1. Add imageUrl (optional)
 }
 
 export interface NoteData {
   title: string;
   content: string;
+  imageUrl?: string; // <-- 2. Add imageUrl (optional)
 }
 
 // --- Helper Function ---
@@ -56,8 +59,12 @@ export const subscribeToNotes = (callback: (notes: Note[]) => void) => {
 /**
  * Adds a new note document to the current user's collection.
  * @param noteData - The note data to add (title and content).
+ * @returns The DocumentReference of the new note.
  */
-export const addNote = (noteData: NoteData) => {
+export const addNote = (
+  noteData: Partial<NoteData>
+): Promise<DocumentReference> => {
+  // <-- 3. Return the full promise
   const notesCollection = getNotesCollection();
   return addDoc(notesCollection, noteData);
 };
@@ -67,13 +74,13 @@ export const addNote = (noteData: NoteData) => {
  * @param id - The ID of the document to update.
  * @param noteData - The new data for the note.
  */
-export const updateNote = (id: string, noteData: NoteData) => {
+export const updateNote = (id: string, noteData: Partial<NoteData>) => {
   const user = auth.currentUser;
   if (!user) throw new Error("No user authenticated.");
 
   // We need the full path for doc()
   const noteDoc = doc(db, "users", user.uid, "notes", id);
-  return updateDoc(noteDoc, noteData as any); // Use 'as any' if updateDoc complains
+  return updateDoc(noteDoc, noteData);
 };
 
 /**
