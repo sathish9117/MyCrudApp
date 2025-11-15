@@ -1,171 +1,85 @@
 import React, { useState, useEffect } from "react";
+import { NavigationContainer } from "@react-navigation/native";
+import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import {
-  StyleSheet,
-  Text,
   View,
-  TextInput,
-  Button,
-  FlatList,
-  TouchableOpacity,
-  SafeAreaView,
+  ActivityIndicator,
+  StyleSheet,
   Platform,
   StatusBar,
-  Alert,
 } from "react-native";
 
-// Import our new service functions and types
 import {
-  subscribeToUsers,
-  addUser,
-  updateUser,
-  deleteUser,
-  User, // Our main User interface
-  UserData, // Our data-only interface
-} from "./firebaseServices/userService"; // Adjust path as needed
+  subscribeToAuthChanges,
+  AuthUser,
+} from "./firebaseServices/authService"; // Adjust path
+
+// Import your screens
+import LoginScreen from "./screens/LoginScreen";
+import SignUpScreen from "./screens/SignUpScreen";
+import NotesScreen from "./screens/NotesScreen";
+
+// Define our navigation stacks
+// This is for unauthenticated users
+const AuthStack = createNativeStackNavigator();
+// This is for authenticated users
+const AppStack = createNativeStackNavigator();
 
 export default function App() {
-  const [users, setUsers] = useState<User[]>([]);
-  const [name, setName] = useState("");
-  const [age, setAge] = useState("");
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // --- READ (Real-time) ---
   useEffect(() => {
-    // Call subscribeToUsers and pass our state updater
-    const unsubscribe = subscribeToUsers((usersData) => {
-      setUsers(usersData);
+    // Subscribe to auth changes
+    const unsubscribe = subscribeToAuthChanges((authUser) => {
+      setUser(authUser);
+      setIsLoading(false);
     });
 
-    // Return the unsubscribe function to be called when the component unmounts
-    return () => unsubscribe();
+    // Cleanup subscription
+    return unsubscribe;
   }, []);
 
-  // --- Helper Functions ---
-  const clearInputs = () => {
-    setName("");
-    setAge("");
-    setSelectedId(null);
-  };
-
-  // --- Handlers (Create, Update, Delete) ---
-
-  const handleAddOrUpdateUser = async () => {
-    if (!name || !age) {
-      Alert.alert("Error", "Please enter both name and age.");
-      return;
-    }
-
-    // Prepare the data. The service expects a number for age.
-    const userData: UserData = {
-      name: name,
-      age: parseInt(age),
-    };
-
-    try {
-      if (selectedId) {
-        // --- UPDATE ---
-        await updateUser(selectedId, userData);
-        Alert.alert("Success", "User updated!");
-      } else {
-        // --- CREATE ---
-        await addUser(userData);
-        Alert.alert("Success", "User added!");
-      }
-      clearInputs();
-    } catch (error) {
-      console.error("Error saving document: ", error);
-      Alert.alert("Error", "Could not save user.");
-    }
-  };
-
-  // --- DELETE ---
-  const handleDeleteUser = async (id: string) => {
-    try {
-      await deleteUser(id);
-      Alert.alert("Success", "User deleted!");
-      // No need to manually remove from state, onSnapshot will do it
-    } catch (error) {
-      console.error("Error deleting document: ", error);
-      Alert.alert("Error", "Could not delete user.");
-    }
-  };
-
-  // Pre-fill form for updating
-  const handleSelectUser = (user: User) => {
-    setSelectedId(user.id);
-    setName(user.name);
-    setAge(user.age.toString());
-  };
-
-  // --- Render Item for FlatList ---
-  const renderItem = ({ item }: { item: User }) => (
-    <View style={styles.itemContainer}>
-      <View style={styles.itemTextContainer}>
-        <Text style={styles.itemText}>{item.name}</Text>
-        <Text style={styles.itemText}>Age: {item.age}</Text>
+  // Show a loading spinner while checking auth state
+  if (isLoading) {
+    return (
+      <View style={styles.loaderContainer}>
+        <ActivityIndicator size="large" />
       </View>
-      <View style={styles.itemButtonContainer}>
-        <TouchableOpacity
-          style={[styles.button, styles.selectButton]}
-          onPress={() => handleSelectUser(item)}
-        >
-          <Text style={styles.buttonText}>Select</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.button, styles.deleteButton]}
-          onPress={() => handleDeleteUser(item.id)}
-        >
-          <Text style={styles.buttonText}>Delete</Text>
-        </TouchableOpacity>
-      </View>
-    </View>
-  );
+    );
+  }
 
   return (
-    <SafeAreaView style={styles.container}>
-      <Text style={styles.title}>Firebase CRUD</Text>
-
-      <View style={styles.inputContainer}>
-        <TextInput
-          style={styles.input}
-          placeholder="Name"
-          value={name}
-          onChangeText={setName}
-        />
-        <TextInput
-          style={styles.input}
-          placeholder="Age"
-          value={age}
-          onChangeText={setAge}
-          keyboardType="numeric"
-        />
-        <Button
-          title={selectedId ? "Update User" : "Add User"}
-          onPress={handleAddOrUpdateUser} // Use the new handler
-        />
-        {selectedId && (
-          <View style={styles.clearButton}>
-            <Button
-              title="Clear Selection"
-              onPress={clearInputs}
-              color="#888"
-            />
-          </View>
-        )}
-      </View>
-
-      <FlatList
-        data={users}
-        renderItem={renderItem}
-        keyExtractor={(item) => item.id}
-        style={styles.list}
-      />
-    </SafeAreaView>
+    <NavigationContainer>
+      {user ? (
+        // User is LOGGED IN: Show the main app
+        <AppStack.Navigator>
+          <AppStack.Screen
+            name="MyNotes"
+            component={NotesScreen}
+            options={{ headerShown: false }} // Hide header, NotesScreen has its own
+          />
+          {/* Add other app screens here */}
+        </AppStack.Navigator>
+      ) : (
+        // User is LOGGED OUT: Show the auth flow
+        <AuthStack.Navigator>
+          <AuthStack.Screen name="Login" component={LoginScreen} />
+          <AuthStack.Screen name="SignUp" component={SignUpScreen} />
+        </AuthStack.Navigator>
+      )}
+    </NavigationContainer>
   );
 }
 
-// --- Styles (No Changes) ---
 const styles = StyleSheet.create({
+  loaderContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  // --- Add ALL OTHER STYLES from your old App.tsx here ---
+  // --- and add these new ones for Login/SignUp ---
   container: {
     flex: 1,
     paddingTop: Platform.OS === "android" ? StatusBar.currentHeight : 0,
@@ -212,6 +126,7 @@ const styles = StyleSheet.create({
   },
   itemText: {
     fontSize: 16,
+    fontWeight: "bold",
   },
   itemButtonContainer: {
     flexDirection: "row",
@@ -231,5 +146,16 @@ const styles = StyleSheet.create({
   },
   deleteButton: {
     backgroundColor: "#dc3545",
+  },
+  link: {
+    color: "#007bff",
+    textAlign: "center",
+    marginTop: 15,
+  },
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginVertical: 20,
   },
 });
